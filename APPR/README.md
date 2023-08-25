@@ -1,4 +1,5 @@
 # APPR进近
-主程序:appr_main.py 读取:APPR.txt
+主程序:appr_main 读取:APPR.txt
 ## 说明
 字段说明+航图 配合食用
+appr_trans 读取表格转换为 APPR.txt

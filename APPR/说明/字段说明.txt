@@ -1,4 +1,4 @@
-A,ZUCK,ZU,U,03,3700
+A,ZUCK,ZU,U,03,3700,1
 E:\steampower\steamapps\common\X-Plane 11\Custom Data
 A,CKM03,A+,3100
 A,CKM02,S,220
@@ -12,6 +12,7 @@ Q,CK710,A+,5000,S,220,H,79,T10
 
 
 A:进近 ZUCK:机场 ZU:区域 U:程序U 03:跑道 3700:TL(-1表示ATC给定)
+1:完全RF弧信息(0表示只用输入转向和半径)
 E:\steampower\steamapps\common\X-Plane 11\Custom Data:游戏路径
 -----------------------------------------------------------
 A/B/C/D/E:从IAF开始到FAP的前一个点结束

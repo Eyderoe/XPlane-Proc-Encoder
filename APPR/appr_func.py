@@ -78,7 +78,8 @@ def info_check(information: list, path: str):
                 break
     airport_data.close()
     if runway not in runways:
-        master_caution("runway disagree. might be " + (lambda x: ','.join(x))(runways))
+        if not runways == []:
+            master_caution("runway disagree. might be " + (lambda x: ','.join(x))(runways))
 
 
 def locate(listy: list) -> dict:
@@ -162,8 +163,12 @@ def iaf_encoder(iaf: list, fap: str, timer: int, header: str) -> str:
         key_word[9] = now[loc]  # 转向
         key_word[11] = "RF"  # 航段类型
         key_word[17] = digit_process(now[loc + 1], 3, 3)  # rf弧半径。关键字段，Toliss对距离中心点不敏感
-        key_word[21] = digit_process(now[loc + 3], 3, 1)  # rf弧距离
-        key_word[30] = now[loc + 2]  # rf弧中心点
+        if header[6] == '1':
+            key_word[21] = digit_process(now[loc + 3], 3, 1)  # rf弧距离
+            key_word[30] = now[loc + 2]  # rf弧中心点
+        else:
+            key_word[21] = digit_process(str(1), 3, 1)
+            key_word[30] = "KTC32"
         key_word[31] = header[2]  # 区域
         key_word[32] = 'P'  # Airport
         key_word[33] = 'C'  # Terminal Waypoints
@@ -190,7 +195,7 @@ def iaf_encoder(iaf: list, fap: str, timer: int, header: str) -> str:
         else:
             key_word[23] = key_word[24] = "     "
     # 26.Transition Altitude?过渡高度层
-    key_word[25] = digit_process(header[-1], 5, 0) if timer == 0 else "     "
+    key_word[25] = digit_process(header[5], 5, 0) if timer == 0 else "     "
     # 27.28.速度限制
     if 'S' in now:
         key_word[26] = '-'
@@ -232,7 +237,7 @@ def fap_encoder(fap: list, timer: int, header: str) -> str:
     # 4.不需要
     # 5.航路点 Fix Identifie
     key_word[4] = "RW" + now[1] if timer == len(fap) - 1 else now[1]
-    if timer == len(fap) - 1 and now[1] != header[-2]:
+    if timer == len(fap) - 1 and now[1] != header[4]:
         master_caution("runway disagree.")
     # 6.7.8.ICAO Code
     key_word[5] = header[2]  # 区域
@@ -252,8 +257,12 @@ def fap_encoder(fap: list, timer: int, header: str) -> str:
         key_word[9] = now[loc]  # 转向
         key_word[11] = "RF"  # 航段类型
         key_word[17] = digit_process(now[loc + 1], 3, 3)  # rf弧半径。关键字段，Toliss对距离中心点不敏感
-        key_word[21] = digit_process(now[loc + 3], 3, 1)  # rf弧距离
-        key_word[30] = now[loc + 2]  # rf弧中心点
+        if header[6] == '1':
+            key_word[21] = digit_process(now[loc + 3], 3, 1)  # rf弧距离
+            key_word[30] = now[loc + 2]  # rf弧中心点
+        else:
+            key_word[21] = digit_process(str(1), 3, 1)
+            key_word[30] = "KTC32"
         key_word[31] = header[2]  # 区域
         key_word[32] = 'P'  # Airport
         key_word[33] = 'C'  # Terminal Waypoints
@@ -280,7 +289,7 @@ def fap_encoder(fap: list, timer: int, header: str) -> str:
         else:
             key_word[23] = key_word[24] = "     "
     # 26.Transition Altitude?过渡高度层
-    key_word[25] = digit_process(header[-1], 5, 0) if timer == 0 else "     "
+    key_word[25] = digit_process(header[5], 5, 0) if timer == 0 else "     "
     # 27.28.速度限制
     if 'S' in now:
         key_word[26] = '-'
@@ -368,8 +377,12 @@ def ga_encoder(ga: list, timer: int, header: str) -> str:
         key_word[9] = now[loc]  # 转向
         key_word[11] = "RF"  # 航段类型
         key_word[17] = digit_process(now[loc + 1], 3, 3)  # rf弧半径。关键字段，Toliss对距离中心点不敏感
-        key_word[21] = digit_process(now[loc + 3], 3, 1)  # rf弧距离
-        key_word[30] = now[loc + 2]  # rf弧中心点
+        if header[6] == '1':
+            key_word[21] = digit_process(now[loc + 3], 3, 1)  # rf弧距离
+            key_word[30] = now[loc + 2]  # rf弧中心点
+        else:
+            key_word[21] = digit_process(str(1), 3, 1)
+            key_word[30] = "KTC32"
         key_word[31] = header[2]  # 区域
         key_word[32] = 'P'  # Airport
         key_word[33] = 'C'  # Terminal Waypoints
@@ -403,7 +416,7 @@ def ga_encoder(ga: list, timer: int, header: str) -> str:
         else:
             key_word[23] = key_word[24] = "     "
     # 26.Transition Altitude?过渡高度层
-    key_word[25]="     "
+    key_word[25] = "     "
     # 27.28.速度限制
     if 'S' in now:
         key_word[26] = '-'
