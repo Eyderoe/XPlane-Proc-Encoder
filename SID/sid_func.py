@@ -111,7 +111,7 @@ def digit_process(x: str, front: int, back: int) -> str:
     :param back: 小数部分位数
     :return: 字符串
     """
-    if x == "-":
+    if x == "-" or x == -1:
         return " " * (front + back)
     if "FL" in x:  # 高度限制可以用高度层
         return "FL" + digit_process(x[2:], 3, 0)
