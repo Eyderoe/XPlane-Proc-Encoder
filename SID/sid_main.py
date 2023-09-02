@@ -14,10 +14,11 @@ header = procedure[:2]
 content = procedure[2:]
 procedure.clear()
 location = df.locate(content)
-outputFile = open(header[0].split(',')[1] + ".add", 'w')
+outputFile = open(header[0].split(',')[1] + ".sid", 'w')
 # ---写入基准 (无trans)
 procName = content[location['Q'][1] - 1].split(',')[1]
-procName = procName[:4] if len(procName) > 4 else procName
+lens=len(procName)+len(header[0].split(',')[3])
+procName = procName[:-(lens-6)] if lens > 6 else procName
 procName += header[0].split(',')[3]
 for i in range(location['Q'][1]):
     txt = df.base_encoder(content[i], i, header[0], procName, location['Q'][1])

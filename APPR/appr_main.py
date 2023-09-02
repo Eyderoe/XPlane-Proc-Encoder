@@ -15,7 +15,7 @@ content = procedure[2:]
 procedure.clear()
 location = af.locate(content)
 # ---写入iaf
-outputFile = open(header[0].split(',')[1] + ".add", 'w')
+outputFile = open(header[0].split(',')[1] + ".appr", 'w')
 IAF = ['A', 'B', 'C', 'D', 'E']
 for i in IAF:
     if i in location:

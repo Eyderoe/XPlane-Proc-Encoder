@@ -1,0 +1,8 @@
+L,ZUCK,ZU,0P,03 02L,3700,1
+E:\steampower\steamapps\common\X-Plane 11\Custom Data
+A,CKM10
+B,CKM11
+B,CKM12
+F,CKM09
+F,CKM08
+F,CK901
