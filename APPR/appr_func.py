@@ -58,7 +58,7 @@ def info_check(information: list, path: str):
         while '' in i_line:
             i_line.remove('')
         if i_line[3] == airport:
-            i_line[4]=clean_tail(i_line[4])
+            i_line[4] = clean_tail(i_line[4])
             if i_line[4] == area:
                 break
             else:
@@ -335,10 +335,24 @@ def holding_pattern(fly_all: list, loc: dict) -> tuple:
     fly_all.insert(hold_loc, raw)
     loc['Q'][1] += 1
     # 简单的删去了盘旋点的rf段，按目前的读取规则来说应该没错？这样下面应该就不用改了
-    if 'R' in fly_all[hold_loc + 1].split(',') or 'L' in fly_all[hold_loc + 1].split(','):
-        temp = fly_all[hold_loc + 1].split(',')
-        temp.remove('R') if 'R' in temp else temp.remove('L')
-        fly_all[hold_loc + 1] = ','.join(temp)
+    # if 'R' in fly_all[hold_loc + 1].split(',') or 'L' in fly_all[hold_loc + 1].split(','):
+    #     temp = fly_all[hold_loc + 1].split(',')
+    #     temp.remove('R') if 'R' in temp else temp.remove('L')
+    #     fly_all[hold_loc + 1] = ','.join(temp)
+    # 高度限制和速度限制好像也要删 这代码没注释看着好头痛
+    # 算了 对这一段合并下 屎山
+    delete_list = ['R', 'L']
+    for i in delete_list:
+        if i in fly_all[hold_loc + 1].split(','):
+            temp = fly_all[hold_loc + 1].split(',')
+            temp.remove(i)
+            fly_all[hold_loc + 1] = ','.join(temp)
+    delete_list = ["A+", "A-", "A@", 'A~', 'S']
+    for i in delete_list:
+        if i in fly_all[hold_loc].split(','):
+            temp = fly_all[hold_loc].split(',')
+            temp.remove(i)
+            fly_all[hold_loc] = ','.join(temp)
     return fly_all, loc
 
 
@@ -400,10 +414,11 @@ def ga_encoder(ga: list, timer: int, header: str) -> str:
     # 19.20.21.22.
     key_word[18] = key_word[19] = key_word[20] = "    "
     if 'H' in now:
+        key_word[11] = "HM"
         loc = now.index('H')
         key_word[20] = digit_process(now[loc + 1], 3, 1)  # 出航航向，默认磁航
         if 'T' in now[loc + 2]:
-            key_word[21] = 'T' + digit_process(now[loc + 2][1:], 3, 0)  # 长度为时间
+            key_word[21] = 'T' + digit_process(str(float(now[loc + 2][1:]) * 10), 3, 0)  # 长度为时间
         else:
             key_word[21] = digit_process(now[loc + 2], 3, 1)  # 长度为距离
     # 23.24.25.高度限制

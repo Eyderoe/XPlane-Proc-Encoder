@@ -10,3 +10,5 @@ hmm.. 友情提示excel可以直接导入文本
 两种航路点转换：naip和little navmap
 ## APPR / SID / STAR
 相应程序及说明
+## Airway
+编码航路
