@@ -3,11 +3,15 @@ import pandas as pd
 
 """
 备忘：
-注意TA和TL都是以英尺形式给出，digit_process可能要额外加入一个参数
+注意TA和TL都是以英尺形式给出，digit_process可能要额外加入一个参数 √
 APPR中的IF点问题编码F √
-所有复制都没有考虑限制的问题艹(去看好像又不会重复显示了,先mark一下)
-4和26还有点问题
-Cpp见证虔诚的信徒,Python诞生虚伪的屎山。
+所有复制都没有考虑限制的问题艹(问题出在APPR STA) CTMD测试程序完美避开了bug √
+4和26还有点问题 √
+编码应该没问题看的是名称 重新把complex_process重构下应该就行了。sid移动后该删哪些也要写
+sid过渡段标识也错了
+上面两个弄完了要重新审一遍encode
+sid-star-appr也有问题 fuck √
+Cpp见证虔诚的信徒,Python诞生虚伪的屎山。 √
 """
 
 
@@ -74,13 +78,23 @@ def est_name(xlsx):
     """
     生成列表，xlsx文件中所有工作薄名称的列表
     """
+
+    # est_name和get_name都重构了
+    def rank(a):
+        if "sid" in a:
+            return 1
+        elif "star" in a:
+            return 2
+        else:
+            return 3
+
     db = pd.read_excel(xlsx, sheet_name=None)
     temp = list(db.keys())
     global namelist
     for i in temp:
         if ("appr" in i) or ("sid" in i) or ("star" in i):
             namelist.append(i)
-    del db
+    namelist = sorted(namelist, key=rank)
     return namelist
 
 
@@ -90,15 +104,8 @@ def get_name():
     """
     if len(namelist) == 0:
         return -1
-    type_list = ['sid', 'star', "appr"]
-    type_now = 3
-    type_loc = -1
-    for i in range(len(namelist)):
-        for j in range(3):
-            if (type_list[j] in namelist[i]) and j < type_now:
-                type_loc = i
-    temp = namelist[type_loc]
-    namelist.pop(type_loc)
+    temp = namelist[0]
+    namelist.pop(0)
     return temp
 
 
@@ -233,6 +240,17 @@ def complex_process(head: str, proc: list):
     3. 内部编码 N编号 C占位符 E跑道索引值 F进近初始点 _FI一段起始 _EN一段终止 _ME一段中间
     对程序有甚大的改变 分段print一下就会很显然
     """
+
+    def del_words(string: str, words: list):  # 重写代码的乐趣 有病是吧？？？ 对于rf弧其实也可以写这样的一个函数
+        """
+        在string中删除words中的元素，并返回
+        """
+        string = string.split(',')
+        for iWord in words:
+            if iWord in string:
+                string[string.index(iWord)] = 'C'
+        return ','.join(string)
+
     proc = proc.copy()  # 我也不清楚这里需不要要 运算量小 无所谓的 感觉应该要，就像cv::Mat
     # * 重新排序，sid把m放前面，appr star把m放后面
     location = locate(proc)  # 注意位置变动
@@ -258,42 +276,25 @@ def complex_process(head: str, proc: list):
     location = locate(proc)
     # * 对程序进行修改
     # ** 复制阶段 越写越答辩 艹 星号代表第几级注释
-    # *** 这里复制基础航段
-    for i in refer.alfa:
-        if _type == 'S':  # SID 把M最后一个加到A前面
-            last_of_base = proc[location['M'][0] + location['M'][1] - 1]
-            proc.insert(location[i][0], last_of_base)
-            proc[location[i][0]] = i + proc[location[i][0]][1:]
-        elif _type == 'L' or _type == 'A':  # STAR APPR 把M第一个加到A后面
-            if _type == 'A':
-                fap_point = proc[location['M'][0]].split(',')
-                try:
-                    fap_point[fap_point.index('G')] = 'C'
-                except ValueError:
-                    printf("glide slope missing at fap", True)
-                first_of_base = ','.join(fap_point)
-            else:
-                first_of_base = proc[location['M'][0]]
-            proc.insert(location[i][0] + location[i][1], first_of_base)
-            proc[location[i][0] + location[i][1]] = i + proc[location[i][0] + location[i][1]][1:]
-        else:
-            printf("unknown type", True)
-        location = locate(proc)
-    del_location = [location[i][0] for i in refer.alfa] if _type == 'S' else [location['M'][0]]
-    for i in del_location:  # 主要是因为SID涉及多个 所以才会写成这么一坨 包括上面那一行 这一坨是写啥的？？？
-        _a = proc[i].split(',')
-        _rf = ['L', 'R']
-        for j in _rf:
-            if j in _a:
-                _a[_a.index(j)] = 'C'
-        proc[i] = ','.join(_a)
+    # *** 这里复制交叉点航段 艹 删了将近30行 心痛 动的地方哪些该删要删
+    if _type == 'S':  # 离场 复制基础最后一个点到过渡第一个
+        for iAlfa in refer.alfa:
+            _temp=proc[location['M'][0] + location['M'][1] - 1].split(',')
+            _temp[_temp.index("M")]=iAlfa
+            proc.insert(location[iAlfa][0], ','.join(_temp))
+            proc[location[iAlfa][0]] = del_words(proc[location[iAlfa][0]], ['S', 'R', 'L'])
+            location = locate(proc)
+    else:
+        proc[location['M'][0]]=del_words(proc[location['M'][0]],['S'])
     # *** 这里复制盘旋和star多跑道情况 只针对appr star的盘旋没有太大用
     if _type == 'A':
-        _a = proc[-1].split(',')
-        if 'H' in _a:
+        if 'H' in proc[-1].split(','):
             proc.append(proc[-1])
-            _a[_a.index('H')] = 'C'
-            proc[-2] = ','.join(_a)
+            proc[-2] = del_words(proc[-2], ['H', 'S'])
+            if "A+" in proc[-2].split(','):
+                _temp = proc[-2].split(',')
+                _temp[_temp.index("A+")] = "A@"
+                proc[-2] = ','.join(_temp)
     if _type == 'L':
         for i in range(len(refer.runway) - 1):
             proc.extend(proc[location['M'][0]:location['M'][0] + location['M'][1]])
@@ -437,7 +438,7 @@ def encode(content, timer):
     elif refer.typist == 'L':  # STAR
         key_word[1] = '4' if now[0] != 'M' else '5'
     else:  # SID
-        key_word[1] = '5' if now[0] != 'M' else '6'
+        key_word[1] = '6' if now[0] != 'M' else '5'
     # 3.程序名
     if refer.typist == 'A':  # APPR
         key_word[2] = 'R' + refer.runway[0] + '-' + refer.procName
@@ -459,7 +460,8 @@ def encode(content, timer):
         key_word[3] = "RW" + refer.runway[runway_num]
     else:  # SID
         _nr = refer.runway[0]
-        key_word[3] = "RW" + _nr if now[0] == 'M' else content[location['M'][0] + location['M'][1] - 1].split(',')[1]
+        na = now[0]  # now alfa
+        key_word[3] = "RW" + _nr if na == 'M' else content[location[na][0] + location[na][1] - 1].split(',')[1]
     # 5.航路点 Fix Identifie
     key_word[4] = now[1] if 'V' not in now else "RW" + now[1]
     if refer.typist == 'S' and timer == 0:  # 打的第一个补丁
@@ -528,6 +530,7 @@ def encode(content, timer):
         course = '-'
     key_word[20] = digit_process(course, 3, 1)
     # 22.Route Distance/Holding Distance or Time (4)
+    key_word[21]="    "
     if 'V' in now:
         key_word[21] = "0010"  # 参照VNKT写的 意思是锚定点后1NM？ 我猜的
     elif "H" in now:

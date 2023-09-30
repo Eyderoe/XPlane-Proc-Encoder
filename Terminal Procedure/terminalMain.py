@@ -30,5 +30,5 @@ while True:
     for i in range(len(content)):
         output = func.encode(content, i)
         func.write2file(xlsxPath, output)
-    func.write2file(xlsxPath,'\n')
+    func.write2file(xlsxPath, '\n')
 os.remove(xlsxPath[:-4] + "temp")
