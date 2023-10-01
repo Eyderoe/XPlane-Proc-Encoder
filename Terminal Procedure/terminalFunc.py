@@ -190,12 +190,15 @@ def info_check(multi_info: str, path: str):
         if empty_process(3, i_line):
             continue
         i_line = i_line.split(' ')
-        if i_line[3] == airport:
-            i_line[4] = empty_process(1, i_line[4])
-            if i_line[4] == area:
-                break
-            else:
-                printf("area disagree. might be " + i_line[4], True)
+        try:
+            if i_line[3] == airport:
+                i_line[4] = empty_process(1, i_line[4])
+                if i_line[4] == area:
+                    break
+                else:
+                    printf("area disagree. might be " + i_line[4], True)
+        except IndexError:
+            pass  # 假如直接从little navmap里面导出就可能导致没有后面那几个
     earth_fix.close()
     # 检查跑道是否正确
     airport_data = open(os.path.join(path, "GNS430/navdata/Airports.txt"), 'r')
@@ -210,6 +213,9 @@ def info_check(multi_info: str, path: str):
                 runways.append(i_line.split(',')[1])
             else:
                 break
+    if len(runways) == 0:
+        print("<警戒!> no runway founded")
+        return None
     airport_data.close()
     runway = refer.runway  # 程序跑道
     for i in runway:
@@ -279,13 +285,16 @@ def complex_process(head: str, proc: list):
     # *** 这里复制交叉点航段 艹 删了将近30行 心痛 动的地方哪些该删要删
     if _type == 'S':  # 离场 复制基础最后一个点到过渡第一个
         for iAlfa in refer.alfa:
-            _temp=proc[location['M'][0] + location['M'][1] - 1].split(',')
-            _temp[_temp.index("M")]=iAlfa
+            _temp = proc[location['M'][0] + location['M'][1] - 1].split(',')
+            _temp[_temp.index("M")] = iAlfa
             proc.insert(location[iAlfa][0], ','.join(_temp))
             proc[location[iAlfa][0]] = del_words(proc[location[iAlfa][0]], ['S', 'R', 'L'])
             location = locate(proc)
     else:
-        proc[location['M'][0]]=del_words(proc[location['M'][0]],['S'])
+        proc[location['M'][0]] = del_words(proc[location['M'][0]], ['S', 'L', 'R'])
+        for iAlfa in refer.alfa:
+            _loc = location[iAlfa][0] + location[iAlfa][1] - 1
+            proc[_loc] = del_words(proc[_loc], ['G'])
     # *** 这里复制盘旋和star多跑道情况 只针对appr star的盘旋没有太大用
     if _type == 'A':
         if 'H' in proc[-1].split(','):
@@ -385,6 +394,9 @@ def complex_process(head: str, proc: list):
                 proc[i] += ",_EN"
             else:
                 proc[i] += ",_ME"
+    if _type == 'A' and False:
+        for i in proc:
+            print(i)
     return proc
 
 
@@ -484,6 +496,8 @@ def encode(content, timer):
     _temp = location[now[0]]  # *** 进近fap点
     if refer.typist == 'A' and now[0] != 'M' and timer == _temp[0] + _temp[1] - 1:
         key_word[8] = key_word[8][:-1] + 'F'
+    if 'H' in now:
+        key_word[8] = key_word[8][:-1] + 'H'
     # ** 全局
     if 'V' in now:
         key_word[8] = "GY M"
@@ -530,14 +544,22 @@ def encode(content, timer):
         course = '-'
     key_word[20] = digit_process(course, 3, 1)
     # 22.Route Distance/Holding Distance or Time (4)
-    key_word[21]="    "
+    key_word[21] = "    "
     if 'V' in now:
         key_word[21] = "0010"  # 参照VNKT写的 意思是锚定点后1NM？ 我猜的
-    elif "H" in now:
+    elif 'H' in now:
         if 'T' not in now[now.index('H') + 3]:
             key_word[21] = digit_process(now[now.index('H') + 3], 3, 1)
         else:
             key_word[21] = "T" + digit_process(now[now.index('H') + 3][1:], 2, 1)
+    if 'L' in now or 'R' in now:
+        if refer.rfFull:
+            try:
+                key_word[21] = digit_process(now[now.index('R') + 3], 3, 1)
+            except ValueError:
+                key_word[21] = digit_process(now[now.index('L') + 3], 3, 1)
+        else:
+            key_word[21] = "0010"
     # 23.24.25.高度限制
     h_limit = [["A+", '+'], ["A-", '-'], ["A@", ' '], ["A~", 'B']]
     for i in h_limit:
@@ -568,9 +590,9 @@ def encode(content, timer):
         key_word[27] = "   "
     # 29.30.下滑道和 Vertical Scale Factor(424-18中没有这个)
     if 'G' in now:
-        key_word[28] = digit_process(now[now.index('G') + 1], 1, 2)
+        key_word[28] = '-' + digit_process(now[now.index('G') + 1], 1, 2)
     else:
-        key_word[28] = digit_process('-', 1, 2)
+        key_word[28] = digit_process('-', 2, 2)
     key_word[29] = "   "
     # 31.32.33.34 RF段中心定位点
     if refer.rfFull and ('R' in now or 'L' in now):
