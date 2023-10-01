@@ -31,8 +31,8 @@ class Info:
     # 仅结构体，仅存放需要二次处理的数据
     # 由于结构混乱，有些东西来不及printf就在这里报错了。应该？
     def __init__(self):
-        self.runway = [].copy()
-        self.alfa = [].copy()
+        self.runway = []
+        self.alfa = []
         self.typist = None
         self.haveTrans = False
         self.procName = None
@@ -41,6 +41,10 @@ class Info:
         self.rfFull = None
 
     def set(self, header: list, content: list):
+        self.runway = [].copy()
+        self.alfa = [].copy()
+        if not os.path.isdir(header[1]):
+            printf("no path",True)
         if header[0].count(',') != 6:
             printf("head argument disagree", True)
         self.runway = header[0].split(',')[4]
@@ -81,9 +85,9 @@ def est_name(xlsx):
 
     # est_name和get_name都重构了
     def rank(a):
-        if "sid" in a:
+        if "sid" in a.lower():
             return 1
-        elif "star" in a:
+        elif "star" in a.lower():
             return 2
         else:
             return 3
@@ -92,7 +96,7 @@ def est_name(xlsx):
     temp = list(db.keys())
     global namelist
     for i in temp:
-        if ("appr" in i) or ("sid" in i) or ("star" in i):
+        if ("appr" in i.lower()) or ("sid" in i.lower()) or ("star" in i.lower()):
             namelist.append(i)
     namelist = sorted(namelist, key=rank)
     return namelist
@@ -137,7 +141,7 @@ def trans_table(table: pd.DataFrame, path: str):
     并把某工作薄写入.temp
     """
     table.fillna("null", inplace=True)
-    path_all = path[:path.index('.')] + ".add"
+    path_all = path[:path.index('.')] + ".proc"
     path_temp = path[:path.index('.')] + ".temp"
     global isFirst
     if isFirst == 0:
@@ -401,7 +405,7 @@ def complex_process(head: str, proc: list):
 
 
 def write2file(path, content):
-    a = open(path[:-4] + "add", 'a')
+    a = open(path[:-4] + "proc", 'a')
     a.write(content + '\n')
 
 
@@ -617,4 +621,4 @@ def encode(content, timer):
         key_word[35] = 'B'
         key_word[36] = 'P'
         key_word[37] = "S;"
-    return ','.join(key_word)
+    return ','.join(key_word) # 怎么是620 不是 520 艹

@@ -21,7 +21,7 @@ while True:
     # 表格转换文本
     func.trans_table(df, xlsxPath)
     header, _content = func.read_txt(xlsxPath)
-    func.refer.set(header, _content)  # 追悔莫及
+    func.refer.set(header, _content)
     # 程序校验
     func.info_check(header[0], header[1])
     # 程序修改
@@ -30,5 +30,5 @@ while True:
     for i in range(len(content)):
         output = func.encode(content, i)
         func.write2file(xlsxPath, output)
-    func.write2file(xlsxPath, '\n')
+    func.write2file(xlsxPath, '')
 os.remove(xlsxPath[:-4] + "temp")
