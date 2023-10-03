@@ -10,7 +10,7 @@ import terminalFunc as func
 # 4. 编码
 
 # 读取并处理xlsx文件
-xlsxPath = "zuck.xlsx"
+xlsxPath = "D:\Python项目\Terminal\存档\zumy.xlsx"
 nameList = func.est_name(xlsxPath)
 while True:
     iName = func.get_name()

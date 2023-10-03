@@ -44,7 +44,7 @@ class Info:
         self.runway = [].copy()
         self.alfa = [].copy()
         if not os.path.isdir(header[1]):
-            printf("no path",True)
+            printf("no path", True)
         if header[0].count(',') != 6:
             printf("head argument disagree", True)
         self.runway = header[0].split(',')[4]
@@ -65,10 +65,10 @@ class Info:
             self.haveTrans = True
         self.typist = header[0].split(',')[0]
         self.area = header[0].split(',')[2]
-        if self.typist == 'A' and len(self.procName) != 1:
-            printf("procedure name error", True)
-        if self.typist in ['L', 'S'] and len(self.procName) != 2:
-            printf("procedure name error", True)
+        # if self.typist == 'A' and len(self.procName) != 1: # 不判断了 现在
+        #     printf("procedure name error", True)
+        # if self.typist in ['L', 'S'] and len(self.procName) != 2:
+        #     printf("procedure name error", True)
         self.transAltitude = header[0].split(',')[5]
         self.rfFull = bool(int(header[0].split(',')[6]))
 
@@ -457,15 +457,18 @@ def encode(content, timer):
         key_word[1] = '6' if now[0] != 'M' else '5'
     # 3.程序名
     if refer.typist == 'A':  # APPR
-        key_word[2] = 'R' + refer.runway[0] + '-' + refer.procName
+        if refer.procName == "-1":
+            key_word[2] = 'R' + refer.runway[0]
+        else:
+            key_word[2] = 'R' + refer.runway[0] + '-' + refer.procName
     elif refer.typist == 'L':  # STAR
         _base_point = content[location['M'][0]].split(',')[1]
         _smaller = _base_point if len(_base_point) <= 4 else _base_point[:4]
-        key_word[2] = _smaller + refer.procName
+        key_word[2] = _smaller + refer.procName if len(refer.procName) <= 2 else refer.procName
     else:  # SID
         _base_point = content[location['M'][0] + location['M'][1] - 1].split(',')[1]
         _smaller = _base_point if len(_base_point) <= 4 else _base_point[:4]
-        key_word[2] = _smaller + refer.procName
+        key_word[2] = _smaller + refer.procName if len(refer.procName) <= 2 else refer.procName
     # 4.IAF点 Transition Identifier
     if refer.typist == 'A':  # APPR
         key_word[3] = ' ' if now[0] == 'M' else content[location[now[0]][0]].split(',')[1]
@@ -621,4 +624,4 @@ def encode(content, timer):
         key_word[35] = 'B'
         key_word[36] = 'P'
         key_word[37] = "S;"
-    return ','.join(key_word) # 怎么是620 不是 520 艹
+    return ','.join(key_word)  # 怎么是620 不是 520 艹
