@@ -85,10 +85,11 @@ def location_process(loc_list: list):
             i = cut(i, ['N', 'E'])
             i = [str(int(j)) for j in i]
             i = [[float(j[:-4]), float(j[-4:-2]), float(j[-2:])] for j in i]
-            for j in i:  # j:[32.0, 26.0]
+            print(i)
+            for j in i:  # j:[31.0, 30.0, 6.0]
                 add = 0
-                for k in range(2):  # j[k]:32.0
-                    add += j[k] / (60 ** k)
+                for k in range(3):  # j[k]:32.0 艹复制下来忘改成3了
+                    add += j[k] / (60 ** k) 
                 back.append(add)  # 怎么感觉上面的写法好奇怪
     back = [str(round(i, 9)) for i in back]
     return back
