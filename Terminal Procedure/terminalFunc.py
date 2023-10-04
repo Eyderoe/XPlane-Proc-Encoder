@@ -7,10 +7,11 @@ import pandas as pd
 APPR中的IF点问题编码F √
 所有复制都没有考虑限制的问题艹(问题出在APPR STA) CTMD测试程序完美避开了bug √
 4和26还有点问题 √
-编码应该没问题看的是名称 重新把complex_process重构下应该就行了。sid移动后该删哪些也要写
-sid过渡段标识也错了
-上面两个弄完了要重新审一遍encode
+编码应该没问题看的是名称 重新把complex_process重构下应该就行了。sid移动后该删哪些也要写 √
+sid过渡段标识也错了 √
+上面两个弄完了要重新审一遍encode √
 sid-star-appr也有问题 fuck √
+进近最后不会显示锚定点 ??? 没有一点头猪
 Cpp见证虔诚的信徒,Python诞生虚伪的屎山。 √
 """
 
@@ -483,12 +484,16 @@ def encode(content, timer):
         key_word[3] = "RW" + _nr if na == 'M' else content[location[na][0] + location[na][1] - 1].split(',')[1]
     # 5.航路点 Fix Identifie
     key_word[4] = now[1] if 'V' not in now else "RW" + now[1]
+    if 'V' in now and (not now[1][0].isdigit()):  # 第二个补丁 锚定点不一定是跑道 ？ 很奇怪
+        key_word[4] = now[1]
     if refer.typist == 'S' and timer == 0:  # 打的第一个补丁
         key_word[4] = "RW" + now[1]
     # 6.7.8.ICAO Code
     key_word[5] = refer.area  # 区域
     key_word[6] = 'P'  # Toliss对此参数不敏感,P-Airport，默认先寻找终端点后寻找航路点？
     key_word[7] = 'C'  # Terminal Waypoints
+    if 'V' in now:
+        key_word[7] = 'G'  # 3rd补丁
     # 9.类型Waypoint Description Code
     # ** 第一位
     key_word[8] = "E   "
@@ -497,6 +502,9 @@ def encode(content, timer):
         key_word[8] = "EY" + key_word[8][2:]
     if "_EN" in now:  # *** 芝士某一段结尾 改写了下
         key_word[8] = "EE" + key_word[8][2:]
+    # ** 第三位
+    if 'V' in content[timer - 1].split(',') and (timer > 1):  # *** 进近复飞点 没有后面那个好像不会报错？
+        key_word[8] = key_word[8][0:2] + 'M' + key_word[8][-1]
     # ** 第四位
     if 'F' in now:  # *** 进近if点
         key_word[8] = key_word[8][:-1] + 'B'
