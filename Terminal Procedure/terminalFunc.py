@@ -12,6 +12,7 @@ sid过渡段标识也错了 √
 上面两个弄完了要重新审一遍encode √
 sid-star-appr也有问题 fuck √
 进近最后不会显示锚定点 ??? 没有一点头猪
+CA(航向到高度) DF(直飞到航点) CF(航向到航点) 
 Cpp见证虔诚的信徒,Python诞生虚伪的屎山。 √
 """
 
@@ -155,7 +156,7 @@ def trans_table(table: pd.DataFrame, path: str):
         trans_list = [i for i in trans_list if i != "null"]
         if len(trans_list) == 0:
             continue
-        txt_temp.write(','.join(trans_list) + '\n')
+        txt_temp.write(','.join(trans_list).upper() + '\n')  # 应该用不到大写吧 ？？？
     txt_temp.close()
 
 
@@ -170,10 +171,12 @@ def read_txt(file):
     for i in txt:
         timer += 1
         i = empty_process(1, i)
-        if timer <= 2:
+        if timer == 1:  # 除了路径 应该就不会出现小写了吧 ？
+            head.append(i.upper())
+        elif timer == 2:
             head.append(i)
         else:
-            proc.append(i)
+            proc.append(i.upper())
     return head.copy(), proc.copy()
 
 
@@ -313,6 +316,18 @@ def complex_process(head: str, proc: list):
         for i in range(len(refer.runway) - 1):
             proc.extend(proc[location['M'][0]:location['M'][0] + location['M'][1]])
     location = locate(proc)
+    # *** 离场的CA-DF CF
+    if _type == 'S':
+        for i in range(len(proc)):
+            if "_CA" in proc[i].split(','):
+                proc[i + 1] += ",_DF"
+                proc[i + 1] = del_words(proc[i + 1], ['R', 'L'])
+                proc[i] = del_words(proc[i], ['A+', 'A-', "A@", "A~"])
+                j = proc[i].split(',')
+                j.insert(j.index('_CA') + 2, "A+")
+                proc[i] = ','.join(j)
+            if "CF" in proc[i]: # 不对这个编码了
+                proc[i] = del_words(proc[i], ["CF"])
     # ** 编码阶段
     # *** 对star多跑道编码 E
     if _type == 'L':
@@ -537,6 +552,12 @@ def encode(content, timer):
         key_word[11] = "RF"
     if refer.typist == 'A' and 'H' in now:
         key_word[11] = "HM"
+    if "_CA" in now:
+        key_word[11] = "CA"
+    if "_DF" in now:
+        key_word[11] = "DF"
+    if "_CF" in now:
+        key_word[11] = "CF"
     # 13.14.15.16.17.
     pass
     # 18.ARC Radius (6)
@@ -632,4 +653,16 @@ def encode(content, timer):
         key_word[35] = 'B'
         key_word[36] = 'P'
         key_word[37] = "S;"
+    # 对CA航段 DF不需要处理
+    if "_CA" in now:
+        key_word[4:9] = [' ', ' ', ' ', ' ', "    "]
+        if "_R" in now:
+            key_word[9] = 'R'
+        elif "_L" in now:
+            key_word[9] = 'L'
+        else:
+            key_word[9] = ' '
+        key_word[20] = digit_process(now[now.index('_CA') + 1], 3, 1)
+    if "_CF" in now:
+        key_word[20] = digit_process(now[now.index('_CF') + 1], 3, 1)
     return ','.join(key_word)  # 怎么是620 不是 520 艹
