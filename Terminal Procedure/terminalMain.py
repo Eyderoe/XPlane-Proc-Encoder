@@ -1,7 +1,4 @@
 import os
-
-import pandas as pd
-
 import terminalFunc as func
 
 # 1. 将xlsx文件转换为文本
@@ -10,19 +7,15 @@ import terminalFunc as func
 # 4. 编码
 
 # 读取并处理xlsx文件
-xlsxPath = "D:\Python项目\Terminal\存档\zuls.xlsx"
-nameList = func.est_name(xlsxPath)
+xlsxPath = r"D:\Python项目\Terminal\存档\zuls.xlsx"
+func.spawn_proc(xlsxPath)
 while True:
-    iName = func.get_name()
-    if iName == -1:
+    # 从.temp文件拿一个程序
+    header, _content = func.get_proc(xlsxPath)
+    if header == -1:
         break
-    func.printf(iName, False)
-    df = pd.read_excel(xlsxPath, sheet_name=iName, header=None, dtype=str)
-    # 表格转换文本
-    func.trans_table(df, xlsxPath)
-    header, _content = func.read_txt(xlsxPath)
-    func.refer.set(header, _content)
     # 程序校验
+    func.refer.set(header, _content)
     func.info_check(header[0], header[1])
     # 程序修改
     content = func.complex_process(header[0], _content)

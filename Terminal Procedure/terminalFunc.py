@@ -12,9 +12,9 @@ sid过渡段标识也错了 √
 上面两个弄完了要重新审一遍encode √
 sid-star-appr也有问题 fuck √
 CA(航向到高度) DF(直飞到航点) CF(航向到航点) √
+RNP数值计算 √
+重构pandas读取 有点问题又把第一行当表头读取了 √
 进近最后不会显示锚定点 ??? 没有一点头猪
-RNP数值计算
-重构pandas读取
 Cpp见证虔诚的信徒,Python诞生虚伪的屎山。 √
 """
 
@@ -34,6 +34,16 @@ def printf(string: str, exiting: bool):
 class Info:
     # 仅结构体，仅存放需要二次处理的数据
     # 由于结构混乱，有些东西来不及printf就在这里报错了。应该？
+    def __init__(self):
+        self.rfFull = None
+        self.transAltitude = None
+        self.area = None
+        self.typist = None
+        self.haveTrans = None
+        self.runway = None
+        self.procName = None
+        self.alfa = None
+
     def set(self, header: list, content: list):
         self.runway = [].copy()
         self.alfa = [].copy()
@@ -68,7 +78,7 @@ class Info:
 
 
 namelist = []
-isFirst = 0
+clock = 1  # 读取目标，应读取第clock个程序(对应读取到第clock个_QED)
 refer = Info()
 
 
@@ -96,22 +106,12 @@ def est_name(xlsx):
     return namelist
 
 
-def get_name():
-    """
-    按sid star appr的顺序获取工作薄名称
-    """
-    if len(namelist) == 0:
-        return -1
-    temp = namelist[0]
-    namelist.pop(0)
-    return temp
-
-
 def empty_process(mode: int, string: str):
     """
     1: 清除尾部空白
     2: 清除所有空白
     3: 返回是否空白
+    4: 清除尾部和头部空白
     """
     if mode == 1:
         while string[-1] == ' ' or string[-1] == '\n':
@@ -121,55 +121,76 @@ def empty_process(mode: int, string: str):
         string = list(string)
         string = [i for i in string if (i != ' ') and (i != '\n')]
         return ''.join(string)
-    else:
+    elif mode == 3:
         for i in string:
             if (i != ' ') and (i != '\n'):
                 return False
         else:
             return True
+    elif mode == 4:
+        while string[0] == ' ' or string[0] == '\n':
+            string = string[1:]
+        while string[-1] == ' ' or string[-1] == '\n':
+            string = string[:-1]
+        return string
+    else:
+        printf("illegal para.", True)
 
 
-def trans_table(table: pd.DataFrame, path: str):
+def trans_table(path: str, sheet_name: str):
     """
-    创建某工作薄临时文件.temp 和 表格总体文件.dat。
     并把某工作薄写入.temp
     """
+    table = pd.read_excel(path, sheet_name=sheet_name, header=None, dtype=str)
     table.fillna("null", inplace=True)
-    path_all = path[:path.index('.')] + ".proc"
-    path_temp = path[:path.index('.')] + ".temp"
-    global isFirst
-    if isFirst == 0:
-        txt_all = open(path_all, 'w')
-        txt_all.close()
-        isFirst += 1
-    txt_temp = open(path_temp, 'w')
+    temp_file = open(path[:-4] + "temp", 'a', encoding="utf-8")
     for i in range(table.shape[0]):
         trans_list = table.iloc[i, :].tolist()
-        trans_list = [i for i in trans_list if i != "null"]
+        trans_list = [empty_process(4, i) for i in trans_list if i != "null"]
         if len(trans_list) == 0:
             continue
-        txt_temp.write(','.join(trans_list).upper() + '\n')  # 应该用不到大写吧 ？？？
-    txt_temp.close()
+        temp_file.write(','.join(trans_list).upper() + '\n')  # 应该用不到大写吧 ？？？
+    temp_file.close()
 
 
-def read_txt(file):
+def spawn_proc(file_path):
     """
-    返回头部和程序部分
+    创建文本化的xlsx文件.temp 和 所有程序存储文件.dat。
+    建立工作表名称列表
+    工作表写入临时文件
     """
-    txt = open(file[:file.index('.')] + ".temp", 'r')
-    head = [].copy()
-    proc = [].copy()
-    timer = 0
-    for i in txt:
-        timer += 1
-        i = empty_process(1, i)
-        if timer == 1:  # 除了路径 应该就不会出现小写了吧 ？
-            head.append(i.upper())
-        elif timer == 2:
-            head.append(i)
-        else:
-            proc.append(i.upper())
-    return head.copy(), proc.copy()
+    path_all = file_path[:file_path.index('.')] + ".proc"
+    path_temp = file_path[:file_path.index('.')] + ".temp"
+    file_all = open(path_all, 'w', encoding="utf-8")
+    file_all.close()
+    path_all = open(path_temp, 'w', encoding="utf-8")
+    path_all.close()
+
+    sheet_list = est_name(file_path)
+
+    for i in sheet_list:
+        trans_table(file_path, i)
+
+
+def get_proc(vnv):
+    temp_file = open(vnv[:-4] + "temp", 'r', encoding="utf-8")
+    combine = []
+    qed_time = 0  # 读取到qed的次数
+    global clock
+    for iLine in temp_file:
+        if "_QED" in iLine:
+            qed_time += 1
+            if qed_time == clock:
+                clock += 1
+                break
+            else:
+                combine = []
+                continue
+        combine.append(empty_process(4, iLine))
+    temp_file.close()
+    if not combine:
+        return -1,-1
+    return combine[:2].copy(), combine[2:].copy()
 
 
 def info_check(multi_info: str, path: str):
@@ -318,7 +339,7 @@ def complex_process(head: str, proc: list):
                 j = proc[i].split(',')
                 j.insert(j.index('_CA') + 2, "A+")
                 proc[i] = ','.join(j)
-            if "CF" in proc[i]: # 不对这个编码了
+            if "CF" in proc[i]:  # 不对这个编码了
                 proc[i] = del_words(proc[i], ["CF"])
     # ** 编码阶段
     # *** 对star多跑道编码 E
@@ -423,7 +444,14 @@ def encode(content, timer):
     """
 
     # 但 但我还不能在这里倒下 やるんだな いまここで
-
+    def rnp_value(rnp: float):
+        rnp = str(rnp)
+        if '.' in rnp and len(rnp) == 3:  # 不想搞高级的算法，累
+            return rnp[-1] + "02"
+        if '.' not in rnp and len(rnp) == 1:
+            return '0' + rnp + '0'
+        else:
+            printf("rnp value error", True)
     def digit_process(x: str, front: int, back: int) -> str:
         """
         返回对应字符串
@@ -531,7 +559,7 @@ def encode(content, timer):
     else:
         key_word[9] = ' '
     # 11.RNP值 遭不住了 再把上面那个函数改一改增加类型
-    value = "010" if "_RNP" in now else "302" # 先放着 后面再改一改
+    value = "302" if "_RNP" not in now else rnp_value(now[now.index("_RNP")+1])  # 先放着 后面再改一改
     if "_FI" not in now:
         key_word[10] = value
     else:
@@ -649,13 +677,14 @@ def encode(content, timer):
     # 对CA航段 DF不需要处理
     if "_CA" in now:
         key_word[4:9] = [' ', ' ', ' ', ' ', "    "]
+        key_word[20] = digit_process(now[now.index('_CA') + 1], 3, 1)
+    if "_CF" in now:
+        key_word[20] = digit_process(now[now.index('_CF') + 1], 3, 1)
+    if "_CA" in now or "_CF" in now:
         if "_R" in now:
             key_word[9] = 'R'
         elif "_L" in now:
             key_word[9] = 'L'
         else:
             key_word[9] = ' '
-        key_word[20] = digit_process(now[now.index('_CA') + 1], 3, 1)
-    if "_CF" in now:
-        key_word[20] = digit_process(now[now.index('_CF') + 1], 3, 1)
     return ','.join(key_word)  # 怎么是620 不是 520 艹
