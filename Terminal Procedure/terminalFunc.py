@@ -11,8 +11,10 @@ APPR中的IF点问题编码F √
 sid过渡段标识也错了 √
 上面两个弄完了要重新审一遍encode √
 sid-star-appr也有问题 fuck √
+CA(航向到高度) DF(直飞到航点) CF(航向到航点) √
 进近最后不会显示锚定点 ??? 没有一点头猪
-CA(航向到高度) DF(直飞到航点) CF(航向到航点) 
+RNP数值计算
+重构pandas读取
 Cpp见证虔诚的信徒,Python诞生虚伪的屎山。 √
 """
 
@@ -32,16 +34,6 @@ def printf(string: str, exiting: bool):
 class Info:
     # 仅结构体，仅存放需要二次处理的数据
     # 由于结构混乱，有些东西来不及printf就在这里报错了。应该？
-    def __init__(self):
-        self.runway = []
-        self.alfa = []
-        self.typist = None
-        self.haveTrans = False
-        self.procName = None
-        self.area = None
-        self.transAltitude = None
-        self.rfFull = None
-
     def set(self, header: list, content: list):
         self.runway = [].copy()
         self.alfa = [].copy()
@@ -539,8 +531,9 @@ def encode(content, timer):
     else:
         key_word[9] = ' '
     # 11.RNP值 遭不住了 再把上面那个函数改一改增加类型
+    value = "010" if "_RNP" in now else "302" # 先放着 后面再改一改
     if "_FI" not in now:
-        key_word[10] = "302"
+        key_word[10] = value
     else:
         key_word[10] = "   "
     # 12.航段类型Path and Termination (2)
