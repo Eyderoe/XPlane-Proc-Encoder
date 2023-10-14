@@ -14,6 +14,7 @@ while True:
     header, _content = func.get_proc(xlsxPath)
     if header == -1:
         break
+    func.printf("{} / {}".format(func.clock - 1, func.procCount), False)
     # 程序校验
     func.refer.set(header, _content)
     func.info_check(header[0], header[1])

@@ -80,6 +80,7 @@ class Info:
 namelist = []
 clock = 1  # 读取目标，应读取第clock个程序(对应读取到第clock个_QED)
 refer = Info()
+procCount = 0
 
 
 def est_name(xlsx):
@@ -141,15 +142,22 @@ def trans_table(path: str, sheet_name: str):
     """
     并把某工作薄写入.temp
     """
+    qed_check = False
     table = pd.read_excel(path, sheet_name=sheet_name, header=None, dtype=str)
     table.fillna("null", inplace=True)
     temp_file = open(path[:-4] + "temp", 'a', encoding="utf-8")
+    global procCount
     for i in range(table.shape[0]):
         trans_list = table.iloc[i, :].tolist()
         trans_list = [empty_process(4, i) for i in trans_list if i != "null"]
         if len(trans_list) == 0:
             continue
         temp_file.write(','.join(trans_list).upper() + '\n')  # 应该用不到大写吧 ？？？
+        if "_QED" in ','.join(trans_list).upper():
+            qed_check = True
+            procCount += 1
+    if not qed_check:
+        printf("_QED missing at end of proc", True)
     temp_file.close()
 
 
@@ -170,6 +178,7 @@ def spawn_proc(file_path):
 
     for i in sheet_list:
         trans_table(file_path, i)
+    printf("load procedures: " + str(procCount), False)
 
 
 def get_proc(vnv):
@@ -189,7 +198,7 @@ def get_proc(vnv):
         combine.append(empty_process(4, iLine))
     temp_file.close()
     if not combine:
-        return -1,-1
+        return -1, -1
     return combine[:2].copy(), combine[2:].copy()
 
 
@@ -260,7 +269,7 @@ def locate(listy: list) -> dict:
     return location
 
 
-def complex_process(head: str, proc: list):
+def complex_process(head: str, proc: list, del_rf=False):
     """
     1. 对乱序的大航段[trans,base,app,ga,...]进行重新排序
     2. 对程序进行修改[盘旋点,trans起点,...] 需要多复制一行
@@ -279,6 +288,9 @@ def complex_process(head: str, proc: list):
         return ','.join(string)
 
     proc = proc.copy()  # 我也不清楚这里需不要要 运算量小 无所谓的 感觉应该要，就像cv::Mat
+    if del_rf:  # 禁用RF弧段
+        for i in range(len(proc)):
+            proc[i] = del_words(proc[i], ['R', 'L'])
     # * 重新排序，sid把m放前面，appr star把m放后面
     location = locate(proc)  # 注意位置变动
     base_loc = location.get('M', -1)  # 注意位置变动
@@ -452,6 +464,7 @@ def encode(content, timer):
             return '0' + rnp + '0'
         else:
             printf("rnp value error", True)
+
     def digit_process(x: str, front: int, back: int) -> str:
         """
         返回对应字符串
@@ -479,7 +492,10 @@ def encode(content, timer):
     key_word = [' '] * 38
     # 1.程序类型+编号
     if refer.typist == 'A':  # APPR
-        key_word[0] = "APPCH:" + digit_process(now[now.index('N') + 1], 2, 1)
+        try:
+            key_word[0] = "APPCH:" + digit_process(now[now.index('N') + 1], 2, 1)
+        except ValueError:
+            printf(now, True)
     elif refer.typist == 'L':  # STAR
         key_word[0] = "STAR:" + digit_process(now[now.index('N') + 1], 2, 1)
     else:  # SID
@@ -544,11 +560,20 @@ def encode(content, timer):
     if 'F' in now:  # *** 进近if点
         key_word[8] = key_word[8][:-1] + 'B'
     _temp = location[now[0]]  # *** 进近fap点
-    if refer.typist == 'A' and now[0] != 'M' and timer == _temp[0] + _temp[1] - 1:
+    if refer.typist == 'A' and now[0] != 'M' and False: # 这是啥 不应该有的感觉 关掉了
         key_word[8] = key_word[8][:-1] + 'F'
     if 'H' in now:
         key_word[8] = key_word[8][:-1] + 'H'
-    # ** 全局
+    if refer.typist == 'A':
+        if "_FI" in now:
+            if 'M' not in now:
+                if 'H' in now:
+                    key_word[8] = key_word[8][:-1] + 'C'  # 应该不会出现这个？好久没管这一坨了
+                else:
+                    key_word[8] = key_word[8][:-1] + 'A'
+            else:
+                key_word[8] = key_word[8][:-1] + 'F'
+                # ** 全局
     if 'V' in now:
         key_word[8] = "GY M"
     # 10.转向 RF航段
@@ -559,7 +584,7 @@ def encode(content, timer):
     else:
         key_word[9] = ' '
     # 11.RNP值 遭不住了 再把上面那个函数改一改增加类型
-    value = "302" if "_RNP" not in now else rnp_value(now[now.index("_RNP")+1])  # 先放着 后面再改一改
+    value = "302" if "_RNP" not in now else rnp_value(now[now.index("_RNP") + 1])
     if "_FI" not in now:
         key_word[10] = value
     else:
@@ -646,7 +671,7 @@ def encode(content, timer):
     else:
         key_word[27] = "   "
     # 29.30.下滑道和 Vertical Scale Factor(424-18中没有这个)
-    if 'G' in now:
+    if 'G' in now and "_FI" not in now:
         key_word[28] = '-' + digit_process(now[now.index('G') + 1], 1, 2)
     else:
         key_word[28] = digit_process('-', 2, 2)
