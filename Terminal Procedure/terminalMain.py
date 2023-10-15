@@ -7,14 +7,17 @@ import terminalFunc as func
 # 4. 编码
 
 # 读取并处理xlsx文件
-xlsxPath = r"D:\Python项目\Terminal\存档\zuls.xlsx"
+xlsxPath = r"D:\Python项目\Terminal\存档\test.xlsx"
 func.spawn_proc(xlsxPath)
 while True:
     # 从.temp文件拿一个程序
     header, _content = func.get_proc(xlsxPath)
     if header == -1:
         break
-    func.printf("{} / {}".format(func.clock - 1, func.procCount), False)
+    try:
+        func.printf("{} / {}".format(func.clock - 1, func.procCount), False)
+    except TypeError:  # 忘了 反正可能会报
+        pass
     # 程序校验
     func.refer.set(header, _content)
     func.info_check(header[0], header[1])
@@ -24,5 +27,6 @@ while True:
     for i in range(len(content)):
         output = func.encode(content, i)
         func.write2file(xlsxPath, output)
-    func.write2file(xlsxPath, '')
+    if True:
+        func.write2file(xlsxPath, '')
 os.remove(xlsxPath[:-4] + "temp")

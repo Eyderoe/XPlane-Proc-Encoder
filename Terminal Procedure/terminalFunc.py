@@ -14,6 +14,7 @@ sid-star-appr也有问题 fuck √
 CA(航向到高度) DF(直飞到航点) CF(航向到航点) √
 RNP数值计算 √
 重构pandas读取 有点问题又把第一行当表头读取了 √
+CF(航向到航点)检查一下
 进近最后不会显示锚定点 ??? 没有一点头猪
 Cpp见证虔诚的信徒,Python诞生虚伪的屎山。 √
 """
@@ -324,7 +325,7 @@ def complex_process(head: str, proc: list, del_rf=False):
             proc[location[iAlfa][0]] = del_words(proc[location[iAlfa][0]], ['S', 'R', 'L'])
             location = locate(proc)
     else:
-        proc[location['M'][0]] = del_words(proc[location['M'][0]], ['S', 'L', 'R'])
+        proc[location['M'][0]] = del_words(proc[location['M'][0]], [ 'L', 'R']) # 速度限制不需要删？
         for iAlfa in refer.alfa:
             _loc = location[iAlfa][0] + location[iAlfa][1] - 1
             proc[_loc] = del_words(proc[_loc], ['G'])
@@ -332,6 +333,7 @@ def complex_process(head: str, proc: list, del_rf=False):
     if _type == 'A':
         if 'H' in proc[-1].split(','):
             proc.append(proc[-1])
+            print(proc)
             proc[-2] = del_words(proc[-2], ['H', 'S'])
             if "A+" in proc[-2].split(','):
                 _temp = proc[-2].split(',')
@@ -351,8 +353,8 @@ def complex_process(head: str, proc: list, del_rf=False):
                 j = proc[i].split(',')
                 j.insert(j.index('_CA') + 2, "A+")
                 proc[i] = ','.join(j)
-            if "CF" in proc[i]:  # 不对这个编码了
-                proc[i] = del_words(proc[i], ["CF"])
+            # if "CF" in proc[i]:  # 不对这个编码了
+            #     proc[i] = del_words(proc[i], ["CF"])
     # ** 编码阶段
     # *** 对star多跑道编码 E
     if _type == 'L':
@@ -560,7 +562,7 @@ def encode(content, timer):
     if 'F' in now:  # *** 进近if点
         key_word[8] = key_word[8][:-1] + 'B'
     _temp = location[now[0]]  # *** 进近fap点
-    if refer.typist == 'A' and now[0] != 'M' and False: # 这是啥 不应该有的感觉 关掉了
+    if refer.typist == 'A' and now[0] != 'M' and False:  # 这是啥 不应该有的感觉 关掉了
         key_word[8] = key_word[8][:-1] + 'F'
     if 'H' in now:
         key_word[8] = key_word[8][:-1] + 'H'
