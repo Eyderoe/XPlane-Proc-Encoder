@@ -325,7 +325,7 @@ def complex_process(head: str, proc: list, del_rf=False):
             proc[location[iAlfa][0]] = del_words(proc[location[iAlfa][0]], ['S', 'R', 'L'])
             location = locate(proc)
     else:
-        proc[location['M'][0]] = del_words(proc[location['M'][0]], [ 'L', 'R']) # 速度限制不需要删？
+        proc[location['M'][0]] = del_words(proc[location['M'][0]], ['L', 'R'])  # 速度限制不需要删？
         for iAlfa in refer.alfa:
             _loc = location[iAlfa][0] + location[iAlfa][1] - 1
             proc[_loc] = del_words(proc[_loc], ['G'])
@@ -333,7 +333,7 @@ def complex_process(head: str, proc: list, del_rf=False):
     if _type == 'A':
         if 'H' in proc[-1].split(','):
             proc.append(proc[-1])
-            print(proc)
+            # print(proc)
             proc[-2] = del_words(proc[-2], ['H', 'S'])
             if "A+" in proc[-2].split(','):
                 _temp = proc[-2].split(',')
@@ -537,7 +537,9 @@ def encode(content, timer):
         key_word[3] = "RW" + _nr if na == 'M' else content[location[na][0] + location[na][1] - 1].split(',')[1]
     # 5.航路点 Fix Identifie
     key_word[4] = now[1] if 'V' not in now else "RW" + now[1]
-    if 'V' in now and (not now[1][0].isdigit()):  # 第二个补丁 锚定点不一定是跑道 ？ 很奇怪
+    if 'V' in now and now[1] in refer.runway:
+        key_word[4] = "RW" + now[1]
+    else:
         key_word[4] = now[1]
     if refer.typist == 'S' and timer == 0:  # 打的第一个补丁
         key_word[4] = "RW" + now[1]
@@ -701,6 +703,8 @@ def encode(content, timer):
         key_word[35] = 'B'
         key_word[36] = 'P'
         key_word[37] = "S;"
+
+    # 下面全是补丁
     # 对CA航段 DF不需要处理
     if "_CA" in now:
         key_word[4:9] = [' ', ' ', ' ', ' ', "    "]
@@ -714,4 +718,8 @@ def encode(content, timer):
             key_word[9] = 'L'
         else:
             key_word[9] = ' '
+    # 对锚定点不是跑道的进近程序
+    if ('V' in now) and ("RW" not in key_word[4]):
+        key_word[7] = 'C'
+        key_word[8] = "EY M"
     return ','.join(key_word)  # 怎么是620 不是 520 艹
