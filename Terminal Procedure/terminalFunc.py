@@ -1,5 +1,6 @@
 import os.path
-import pandas as pd
+from pandas import ExcelFile
+from pandas import read_excel
 
 """
 备忘：
@@ -82,6 +83,7 @@ namelist = []
 clock = 1  # 读取目标，应读取第clock个程序(对应读取到第clock个_QED)
 refer = Info()
 procCount = 0
+excelGlobal = None
 
 
 def est_name(xlsx):
@@ -98,7 +100,9 @@ def est_name(xlsx):
         else:
             return 3
 
-    db = pd.read_excel(xlsx, sheet_name=None)
+    global excelGlobal
+    excelGlobal = ExcelFile(xlsx)
+    db = read_excel(excelGlobal, sheet_name=None)
     temp = list(db.keys())
     global namelist
     for i in temp:
@@ -144,7 +148,8 @@ def trans_table(path: str, sheet_name: str):
     并把某工作薄写入.temp
     """
     qed_check = False
-    table = pd.read_excel(path, sheet_name=sheet_name, header=None, dtype=str)
+    global excelGlobal
+    table = read_excel(excelGlobal, sheet_name=sheet_name, header=None, dtype=str)
     table.fillna("null", inplace=True)
     temp_file = open(path[:-4] + "temp", 'a', encoding="utf-8")
     global procCount
@@ -227,7 +232,7 @@ def info_check(multi_info: str, path: str):
                 if i_line[4] == area:
                     break
                 else:
-                    printf("机场区域错误,可能是: " + i_line[4], True)
+                    printf("机场{}区域错误,可能是: ".format(airport) + i_line[4], True)
         except IndexError:
             pass  # 假如直接从little navmap里面导出就可能导致没有后面那几个
     earth_fix.close()
@@ -236,7 +241,7 @@ def info_check(multi_info: str, path: str):
     bottom = False
     runways = []  # 所有跑道
     for i_line in airport_data:
-        if airport in i_line:
+        if ',' + airport + ',' in i_line:
             bottom = True
             continue
         if bottom:
@@ -245,13 +250,13 @@ def info_check(multi_info: str, path: str):
             else:
                 break
     if len(runways) == 0:
-        print("<警戒!> 机场没有找到跑道")
+        print("<警戒!> 机场{}没有找到跑道".format(airport))
         return None
     airport_data.close()
     runway = refer.runway  # 程序跑道
     for i in runway:
         if i not in runways:
-            printf("跑道错误,可能是: " + (lambda x: ','.join(x))(runways), True)
+            printf("机场跑道错误,可能是: ".format(airport) + (lambda x: ','.join(x))(runways), True)
 
 
 def locate(listy: list) -> dict:

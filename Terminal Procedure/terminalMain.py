@@ -7,7 +7,7 @@ import terminalFunc as func
 # 4. 编码
 
 # 读取并处理xlsx文件
-xlsxPath = r"D:\Python项目\Terminal\存档\zuck.xlsx"
+xlsxPath = r"D:\Python项目\Terminal\存档\zhny.xlsx"
 func.spawn_proc(xlsxPath)
 while True:
     # 从.temp文件拿一个程序
@@ -27,6 +27,6 @@ while True:
     for i in range(len(content)):
         output = func.encode(content, i)
         func.write2file(xlsxPath, output)
-    if True:
+    if False:
         func.write2file(xlsxPath, '')
 os.remove(xlsxPath[:-4] + "temp")
