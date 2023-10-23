@@ -49,9 +49,9 @@ class Info:
         self.runway = [].copy()
         self.alfa = [].copy()
         if not os.path.isdir(header[1]):
-            printf("no path", True)
+            printf("不存在该路径", True)
         if header[0].count(',') != 6:
-            printf("head argument disagree", True)
+            printf("程序头第一行错误", True)
         self.runway = header[0].split(',')[4]
         self.procName = header[0].split(',')[3]
         if ' ' in self.runway:
@@ -65,7 +65,7 @@ class Info:
         try:
             self.alfa.remove('M')
         except ValueError:
-            printf("missing M", True)
+            printf("缺失航段M", True)
         if len(self.alfa) != 0:
             self.haveTrans = True
         self.typist = header[0].split(',')[0]
@@ -158,7 +158,7 @@ def trans_table(path: str, sheet_name: str):
             qed_check = True
             procCount += 1
     if not qed_check:
-        printf("_QED missing at end of proc", True)
+        printf("程序尾部缺失_QED", True)
     temp_file.close()
 
 
@@ -179,7 +179,7 @@ def spawn_proc(file_path):
 
     for i in sheet_list:
         trans_table(file_path, i)
-    printf("load procedures: " + str(procCount), False)
+    printf("加载程序数量: " + str(procCount), False)
 
 
 def get_proc(vnv):
@@ -227,7 +227,7 @@ def info_check(multi_info: str, path: str):
                 if i_line[4] == area:
                     break
                 else:
-                    printf("area disagree. might be " + i_line[4], True)
+                    printf("机场区域错误,可能是: " + i_line[4], True)
         except IndexError:
             pass  # 假如直接从little navmap里面导出就可能导致没有后面那几个
     earth_fix.close()
@@ -245,13 +245,13 @@ def info_check(multi_info: str, path: str):
             else:
                 break
     if len(runways) == 0:
-        print("<警戒!> no runway founded")
+        print("<警戒!> 机场没有找到跑道")
         return None
     airport_data.close()
     runway = refer.runway  # 程序跑道
     for i in runway:
         if i not in runways:
-            printf("runway disagree. might be " + (lambda x: ','.join(x))(runways), True)
+            printf("跑道错误,可能是: " + (lambda x: ','.join(x))(runways), True)
 
 
 def locate(listy: list) -> dict:
@@ -296,7 +296,7 @@ def complex_process(head: str, proc: list, del_rf=False):
     location = locate(proc)  # 注意位置变动
     base_loc = location.get('M', -1)  # 注意位置变动
     if base_loc == -1:
-        printf("undefined M", True)
+        printf("没有定义航段M", True)
     _type = head.split(',')[0]
     if _type == 'S':  # sid M前置
         if base_loc[0] != 0:
@@ -312,7 +312,7 @@ def complex_process(head: str, proc: list, del_rf=False):
             proc.extend(proc[start:end])
             proc = [proc[i] for i in range(len(proc)) if i <= start - 1 or i >= end]  # 你脑子有病是吧，不切片用推导式
     else:
-        printf(_type + " NotMatch:SID-S STAR-L APPR-A", True)
+        printf(_type + " 程序不符合:SID-S STAR-L APPR-A", True)
     location = locate(proc)
     # * 对程序进行修改
     # ** 复制阶段 越写越答辩 艹 星号代表第几级注释
@@ -382,14 +382,18 @@ def complex_process(head: str, proc: list, del_rf=False):
                 proc[location[i][0]] += ",F"
         # G
         fap_point = proc[location['M'][0]].split(',')
-        glide_slope = fap_point[fap_point.index('G'):fap_point.index('G') + 2]
+        glide_slope = []
+        try:
+            glide_slope = fap_point[fap_point.index('G'):fap_point.index('G') + 2]
+        except ValueError:
+            printf("下滑道标识缺失-G", True)
         glide_slope = ',' + ','.join(glide_slope)
         runway_loc = -1
         for i in range(len(proc)):
             if 'V' in proc[i].split(','):
                 runway_loc = i
         if runway_loc == -1:
-            printf("mark V (runway) missing", True)
+            printf("跑道标识V丢失", True)
         for i in range(location['M'][0], runway_loc + 1):
             proc[i] += glide_slope
     # *** 编号 N
@@ -465,7 +469,7 @@ def encode(content, timer):
         if '.' not in rnp and len(rnp) == 1:
             return '0' + rnp + '0'
         else:
-            printf("rnp value error", True)
+            printf("RNP值错误", True)
 
     def digit_process(x: str, front: int, back: int) -> str:
         """
@@ -624,6 +628,10 @@ def encode(content, timer):
     # 21.Magnetic Course (4)
     if 'V' in now:
         course = now[now.index('V') + 1]
+        try:
+            digit_process(course, 3, 1)
+        except ValueError:
+            printf("检查-> 进近程序-跑道描述-V-航向", True)
     elif 'H' in now:
         course = now[now.index('H') + 2]
     else:

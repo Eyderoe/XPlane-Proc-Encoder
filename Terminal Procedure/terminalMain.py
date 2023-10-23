@@ -27,6 +27,6 @@ while True:
     for i in range(len(content)):
         output = func.encode(content, i)
         func.write2file(xlsxPath, output)
-    if False:
+    if True:
         func.write2file(xlsxPath, '')
 os.remove(xlsxPath[:-4] + "temp")
