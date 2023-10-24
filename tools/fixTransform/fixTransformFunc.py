@@ -1,4 +1,8 @@
-def rough_process(txt: str):
+def rough_process(txt: str, cat: int) -> tuple:
+    """
+    :param cat: 1.fixSample1那种 2.fixSample2那种 ...
+    """
+
     def not_empty(a):
         for i in a:
             if i != '\n' and i != ' ':
@@ -16,14 +20,13 @@ def rough_process(txt: str):
     _txt = open(txt, 'r', encoding="utf-8")
     fix_list = []
     location_list = []
-    cat = 1  # 0整齐 1杂乱
     txt = _txt.read()
     for i in txt:
         if '°' in i:
             cat = 0
             break
     _txt.close()
-    if cat == 0:
+    if cat == 1:
         txt = txt.split('\n')
         txt = [i for i in txt if not_empty(i)]
         for i in range(len(txt)):
@@ -31,7 +34,7 @@ def rough_process(txt: str):
                 fix_list.append(clean_head_tail(txt[i]))
             else:
                 location_list.append(clean_head_tail(txt[i]))
-    else:
+    elif cat == 2:
         txt = txt.replace('\n', ' ').split(' ')
         txt = [i for i in txt if i != '']
         for i in range(len(txt)):
@@ -39,6 +42,21 @@ def rough_process(txt: str):
                 fix_list.append(txt[i])
             else:
                 location_list.append(txt[i])
+    elif cat == 3:
+        txt = txt.split('\n')
+        txt = [i for i in txt if i != '']
+        for i in txt:
+            if not not_empty(i):
+                continue
+            i = i.split()
+            for j in range(1, len(i)):
+                i[j] = i[j].replace('N', '')
+                i[j] = i[j].replace('E', '')
+            i = [j for j in i if j != '']
+            fix_list.append(i[0])
+            location_list.append('T'.join(i[1:]))
+    else:
+        print("文本类型错误")
     return fix_list, location_list
 
 
@@ -60,10 +78,13 @@ def location_process(loc_list: list):
     for i in loc_list:
         if '°' in i:  # N29°18'45.1"E092°19'45.4" 度分秒
             mode = 0
+        elif 'T' in i:
+            mode = 2
         elif '.' in i:  # N3226.0E10456.0 度分？
             mode = 1
         else:  # N312047E1044856 度分秒？
-            mode = 2
+            mode = -1
+
         if mode == 0:  # 感觉有点像脱了裤子放屁 算了
             i = cut(i, ['N', 'E', '°', '\'', '\"'])
             for j in range(6):
@@ -81,15 +102,22 @@ def location_process(loc_list: list):
                 for k in range(2):  # j[k]:32.0
                     add += j[k] / (60 ** k)
                 back.append(add)  # 怎么感觉上面的写法好奇怪
-        else:
+        elif mode == 2:
+            for i in loc_list:
+                i = i.split('T')
+                i = list(map(float, i))
+                la = i[0] + i[1] / 60
+                long = i[2] + i[3] / 60
+                back.append(la)
+                back.append(long)
+        elif mode == -1:
             i = cut(i, ['N', 'E'])
             i = [str(int(j)) for j in i]
             i = [[float(j[:-4]), float(j[-4:-2]), float(j[-2:])] for j in i]
-            print(i)
             for j in i:  # j:[31.0, 30.0, 6.0]
                 add = 0
                 for k in range(3):  # j[k]:32.0 艹复制下来忘改成3了
-                    add += j[k] / (60 ** k) 
+                    add += j[k] / (60 ** k)
                 back.append(add)  # 怎么感觉上面的写法好奇怪
     back = [str(round(i, 9)) for i in back]
     return back

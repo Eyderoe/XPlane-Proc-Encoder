@@ -16,6 +16,7 @@ CA(航向到高度) DF(直飞到航点) CF(航向到航点) √
 RNP数值计算 √
 重构pandas读取 有点问题又把第一行当表头读取了 √
 CF(航向到航点)检查一下
+有时间再把程序重新写写
 进近最后不会显示锚定点 ??? 没有一点头猪
 Cpp见证虔诚的信徒,Python诞生虚伪的屎山。 √
 """
@@ -31,6 +32,18 @@ def printf(string: str, exiting: bool):
         exit()
     else:
         print("<进程> " + string)
+
+
+logPath = ""
+
+
+def log_record(anything, enter=0):
+    global logPath
+    log = open(logPath, 'a+', encoding='utf-8')
+    for i in range(enter):
+        log.write('\n')
+    log.write(str(anything))
+    log.close()
 
 
 class Info:
@@ -50,7 +63,7 @@ class Info:
         self.runway = [].copy()
         self.alfa = [].copy()
         if not os.path.isdir(header[1]):
-            printf("不存在该路径", True)
+            printf("不存在该路径{}".format(header[1]), True)
         if header[0].count(',') != 6:
             printf("程序头第一行错误", True)
         self.runway = header[0].split(',')[4]
@@ -77,6 +90,7 @@ class Info:
         #     printf("procedure name error", True)
         self.transAltitude = header[0].split(',')[5]
         self.rfFull = bool(int(header[0].split(',')[6]))
+        log_record("结构体检查通过",1)
 
 
 namelist = []
@@ -104,11 +118,13 @@ def est_name(xlsx):
     excelGlobal = ExcelFile(xlsx)
     db = read_excel(excelGlobal, sheet_name=None)
     temp = list(db.keys())
+    log_record("所有工作表: " + str(temp) + "\n")
     global namelist
     for i in temp:
         if ("appr" in i.lower()) or ("sid" in i.lower()) or ("star" in i.lower()):
             namelist.append(i)
     namelist = sorted(namelist, key=rank)
+    log_record("有效工作表: " + str(namelist))
     return namelist
 
 
@@ -173,17 +189,24 @@ def spawn_proc(file_path):
     建立工作表名称列表
     工作表写入临时文件
     """
+    base_path, base_name = os.path.split(file_path)
+    path_log = os.path.join(base_path, "log.md")
     path_all = file_path[:file_path.index('.')] + ".proc"
     path_temp = file_path[:file_path.index('.')] + ".temp"
     file_all = open(path_all, 'w', encoding="utf-8")
     file_all.close()
     path_all = open(path_temp, 'w', encoding="utf-8")
     path_all.close()
+    global logPath
+    logPath = path_log
+    path_all = open(path_log, 'w', encoding="utf-8")
+    path_all.close()
 
     sheet_list = est_name(file_path)
 
     for i in sheet_list:
         trans_table(file_path, i)
+    log_record("\n读取到{}个程序".format(procCount))
     printf("加载程序数量: " + str(procCount), False)
 
 
@@ -205,6 +228,12 @@ def get_proc(vnv):
     temp_file.close()
     if not combine:
         return -1, -1
+    log_record("获取程序", 2)
+    log_record("程序头部" + str(combine[:2]), 1)
+    log_record("程序内容" + str(combine[2:]), 1)
+    for i in combine[2:]:
+        if os.path.isdir(i):
+            printf("_QED存在缺失",True)
     return combine[:2].copy(), combine[2:].copy()
 
 
@@ -237,7 +266,13 @@ def info_check(multi_info: str, path: str):
             pass  # 假如直接从little navmap里面导出就可能导致没有后面那几个
     earth_fix.close()
     # 检查跑道是否正确
-    airport_data = open(os.path.join(path, "GNS430/navdata/Airports.txt"), 'r')
+    # * 有些环境下可能出现路径错误的情况 所以这样改
+    path_list = ["GNS430", "navdata", "Airports.txt"]
+    for i in path_list:
+        path = os.path.join(path, i)
+    if not os.path.exists(path):
+        printf("路径{}不存在".format(path), True)
+    airport_data = open(path, 'r')
     bottom = False
     runways = []  # 所有跑道
     for i_line in airport_data:
@@ -256,7 +291,7 @@ def info_check(multi_info: str, path: str):
     runway = refer.runway  # 程序跑道
     for i in runway:
         if i not in runways:
-            printf("机场跑道错误,可能是: ".format(airport) + (lambda x: ','.join(x))(runways), True)
+            printf("机场{}跑道错误,可能是: ".format(airport) + (lambda x: ','.join(x))(runways), True)
 
 
 def locate(listy: list) -> dict:
@@ -453,6 +488,7 @@ def complex_process(head: str, proc: list, del_rf=False):
     if _type == 'A' and False:
         for i in proc:
             print(i)
+    log_record("程序复杂处理" + str(proc), 1)
     return proc
 
 
@@ -500,6 +536,7 @@ def encode(content, timer):
 
     location = locate(content)
     now = content[timer].split(',')
+    log_record("当前航点: " + str(now), 1)
     key_word = [' '] * 38
     # 1.程序类型+编号
     if refer.typist == 'A':  # APPR
@@ -545,11 +582,11 @@ def encode(content, timer):
         na = now[0]  # now alfa
         key_word[3] = "RW" + _nr if na == 'M' else content[location[na][0] + location[na][1] - 1].split(',')[1]
     # 5.航路点 Fix Identifie
-    key_word[4] = now[1] if 'V' not in now else "RW" + now[1]
-    if 'V' in now and now[1] in refer.runway:
+    key_word[4] = now[1]
+    if ('V' in now) and (now[1] in refer.runway):
         key_word[4] = "RW" + now[1]
-    else:
-        key_word[4] = now[1]
+    if ('V' in now) and (now[1] not in refer.runway) and (len(now[1]) <= 3):
+        print("<警戒!> 考虑进近跑道错误")
     if refer.typist == 'S' and timer == 0:  # 打的第一个补丁
         key_word[4] = "RW" + now[1]
     # 6.7.8.ICAO Code
@@ -735,4 +772,5 @@ def encode(content, timer):
     if ('V' in now) and ("RW" not in key_word[4]):
         key_word[7] = 'C'
         key_word[8] = "EY M"
+    log_record("当前航点编码"+'['+','.join(key_word)+']',1)
     return ','.join(key_word)  # 怎么是620 不是 520 艹
