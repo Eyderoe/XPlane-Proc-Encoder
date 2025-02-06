@@ -1,5 +1,6 @@
 # 注意 Attention
-https://github.com/Eyderoe/NAIP-Converter/tree/%E5%AE%8C%E5%85%A8%E8%83%9C%E5%88%A9%E3%81%A0/Maunal%20Edit
+这是旧的，不会再更新了，没必要用，不如自己硬写\
+新的，不会放出来了
 # XPlane Procedure Encoder
 方便Toliss在XP11中使用自定义的RNP-AR程序\
 不完全遵循ARINC-424.18+规范，只在xp11的toliss下进行过测试。\
